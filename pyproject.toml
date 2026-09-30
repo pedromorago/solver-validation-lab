@@ -1,0 +1,17 @@
+[project]
+name = "solver-validation-lab"
+version = "0.1.0"
+description = "Validating a poker equity engine when there is no perfect oracle"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Pedro Morago" }]
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "hypothesis>=6", "treys==0.1.8"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src", "."]
+testpaths = ["tests"]
+markers = ["slow: runs the whole suite once per seeded bug"]

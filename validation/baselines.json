@@ -1,0 +1,195 @@
+{
+  "generated_by": "scripts/make_baselines.py",
+  "spots": [
+    {
+      "name": "flush draw vs overpair",
+      "hands": [
+        "AhKh",
+        "QsQd"
+      ],
+      "board": "Jh Th 2c",
+      "runouts": 990,
+      "units": [
+        1110,
+        870
+      ],
+      "equities": [
+        0.560606,
+        0.439394
+      ]
+    },
+    {
+      "name": "open-ender vs top pair",
+      "hands": [
+        "9c8c",
+        "AsJd"
+      ],
+      "board": "Jh Td 7s",
+      "runouts": 990,
+      "units": [
+        1883,
+        97
+      ],
+      "equities": [
+        0.95101,
+        0.04899
+      ]
+    },
+    {
+      "name": "set vs overpair",
+      "hands": [
+        "7d7c",
+        "AhAc"
+      ],
+      "board": "7s Kd 2h",
+      "runouts": 990,
+      "units": [
+        1804,
+        176
+      ],
+      "equities": [
+        0.911111,
+        0.088889
+      ]
+    },
+    {
+      "name": "dominated kicker",
+      "hands": [
+        "AsKd",
+        "AcQh"
+      ],
+      "board": "Ah 8c 3d",
+      "runouts": 990,
+      "units": [
+        1728,
+        252
+      ],
+      "equities": [
+        0.872727,
+        0.127273
+      ]
+    },
+    {
+      "name": "wheel draw",
+      "hands": [
+        "As2s",
+        "KdKh"
+      ],
+      "board": "3c 4d 9h",
+      "runouts": 990,
+      "units": [
+        568,
+        1412
+      ],
+      "equities": [
+        0.286869,
+        0.713131
+      ]
+    },
+    {
+      "name": "same ranks, one backdoor flush",
+      "hands": [
+        "2c3d",
+        "2h3s"
+      ],
+      "board": "Ah Kh Qh",
+      "runouts": 990,
+      "units": [
+        666,
+        1314
+      ],
+      "equities": [
+        0.336364,
+        0.663636
+      ]
+    },
+    {
+      "name": "three-way",
+      "hands": [
+        "AhKh",
+        "QsQd",
+        "9c8c"
+      ],
+      "board": "Jh Td 2c",
+      "runouts": 903,
+      "units": [
+        1590,
+        2706,
+        1122
+      ],
+      "equities": [
+        0.293466,
+        0.499446,
+        0.207087
+      ]
+    },
+    {
+      "name": "flush draw vs overpair, turn",
+      "hands": [
+        "AhKh",
+        "QsQd"
+      ],
+      "board": "Jh Th 2c 5d",
+      "runouts": 44,
+      "units": [
+        32,
+        56
+      ],
+      "equities": [
+        0.363636,
+        0.636364
+      ]
+    },
+    {
+      "name": "gutshot vs two pair, turn",
+      "hands": [
+        "Qc9c",
+        "JsTc"
+      ],
+      "board": "Jh Td 3s 2h",
+      "runouts": 44,
+      "units": [
+        16,
+        72
+      ],
+      "equities": [
+        0.181818,
+        0.818182
+      ]
+    },
+    {
+      "name": "river win",
+      "hands": [
+        "AhKh",
+        "QsQd"
+      ],
+      "board": "Jh Th 2c 5d 3h",
+      "runouts": 1,
+      "units": [
+        2,
+        0
+      ],
+      "equities": [
+        1.0,
+        0.0
+      ]
+    },
+    {
+      "name": "river split",
+      "hands": [
+        "AhKd",
+        "AcKs"
+      ],
+      "board": "Qh Jd Ts 4c 2s",
+      "runouts": 1,
+      "units": [
+        1,
+        1
+      ],
+      "equities": [
+        0.5,
+        0.5
+      ]
+    }
+  ]
+}
