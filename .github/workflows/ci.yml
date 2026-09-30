@@ -25,3 +25,25 @@ jobs:
           cat mutants.md >> "$GITHUB_STEP_SUMMARY"
         env:
           PYTHONPATH: src:.
+      - name: Validate the strategy fixtures
+        run: svlab validate fixtures/strategies/*.json
+      - name: Suit isomorphism across files
+        run: svlab iso fixtures/strategies/srp_btn_bb_Ks7s2d.json fixtures/strategies/srp_btn_bb_Kh7h2c.json
+      - name: Regression diff demo
+        run: |
+          svlab diff fixtures/strategies/srp_btn_bb_Ks7s2d.json fixtures/strategies/candidate_minor_Ks7s2d.json \
+            --config fixtures/diff_thresholds.json --quiet
+          # The regressed candidate must fail the diff with exit code 1.
+          set +e
+          svlab diff fixtures/strategies/srp_btn_bb_Ks7s2d.json fixtures/strategies/candidate_regressed_Ks7s2d.json \
+            --config fixtures/diff_thresholds.json --markdown diff.md --json diff.json --quiet
+          code=$?
+          set -e
+          test "$code" -eq 1
+          { echo "## Regression diff demo (expected to fail)"; echo; cat diff.md; } >> "$GITHUB_STEP_SUMMARY"
+      - name: Seeded corruptions report
+        run: |
+          python scripts/run_corruptions.py | tee corruptions.md
+          { echo "## Seeded strategy corruptions"; echo; cat corruptions.md; } >> "$GITHUB_STEP_SUMMARY"
+        env:
+          PYTHONPATH: src:.
