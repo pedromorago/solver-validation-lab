@@ -1,4 +1,5 @@
-"""A small poker equity engine: the system under test in this lab."""
+"""A small poker equity engine, the reference layer of this lab. The
+validator for exported solver strategies lives in `svlab.strategy`."""
 
 from .cards import parse, parse_many, card_str, FULL_DECK
 from .evaluator import evaluate, HandCategory

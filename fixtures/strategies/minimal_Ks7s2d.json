@@ -1,0 +1,74 @@
+{
+  "format": "svlab-strategy/1",
+  "meta": {
+    "synthetic": true,
+    "description": "Hand-written example of the format: a few combos, three nodes. Made-up numbers, not solver output.",
+    "units": "bb"
+  },
+  "spot": {
+    "game": "NLHE",
+    "positions": ["BTN", "BB"],
+    "pot": 5.5,
+    "effective_stack": 97.5,
+    "board": "Ks7s2d",
+    "preflop": ["BTN raise 2.5", "BB call"]
+  },
+  "nodes": [
+    {
+      "path": [],
+      "player": "BB",
+      "pot": 5.5,
+      "effective_stack": 97.5,
+      "to_call": 0,
+      "actions": [
+        {"id": "check", "type": "check"},
+        {"id": "bet33", "type": "bet", "size": 1.8}
+      ],
+      "combos": {
+        "7h7c": {"weight": 1.0, "freqs": {"check": 0.25, "bet33": 0.75}, "evs": {"check": 4.1, "bet33": 4.3}, "ev": 4.25},
+        "AhQh": {"weight": 1.0, "freqs": {"check": 1.0, "bet33": 0.0}, "evs": {"check": 2.2, "bet33": 1.9}, "ev": 2.2},
+        "AcQc": {"weight": 1.0, "freqs": {"check": 1.0, "bet33": 0.0}, "evs": {"check": 2.2, "bet33": 1.9}, "ev": 2.2},
+        "Jd9d": {"weight": 0.5, "freqs": {"check": 0.9, "bet33": 0.1}, "evs": {"check": 1.1, "bet33": 1.05}, "ev": 1.095},
+        "8s6s": {"weight": 1.0, "freqs": {"check": 0.6, "bet33": 0.4}, "evs": {"check": 1.6, "bet33": 1.6}, "ev": 1.6}
+      }
+    },
+    {
+      "path": ["check"],
+      "player": "BTN",
+      "pot": 5.5,
+      "effective_stack": 97.5,
+      "to_call": 0,
+      "actions": [
+        {"id": "check", "type": "check"},
+        {"id": "bet33", "type": "bet", "size": 1.8},
+        {"id": "bet75", "type": "bet", "size": 4.1}
+      ],
+      "combos": {
+        "KhQd": {"weight": 1.0, "freqs": {"check": 0.1, "bet33": 0.3, "bet75": 0.6}, "evs": {"check": 4.0, "bet33": 4.4, "bet75": 4.5}, "ev": 4.42},
+        "KcQd": {"weight": 1.0, "freqs": {"check": 0.1, "bet33": 0.3, "bet75": 0.6}, "evs": {"check": 4.0, "bet33": 4.4, "bet75": 4.5}, "ev": 4.42},
+        "AsJs": {"weight": 1.0, "freqs": {"check": 0.2, "bet33": 0.5, "bet75": 0.3}, "evs": {"check": 3.0, "bet33": 3.3, "bet75": 3.2}, "ev": 3.21},
+        "6h5h": {"weight": 1.0, "freqs": {"check": 0.7, "bet33": 0.0, "bet75": 0.3}, "evs": {"check": 1.2, "bet33": 0.9, "bet75": 1.2}, "ev": 1.2},
+        "6c5c": {"weight": 1.0, "freqs": {"check": 0.7, "bet33": 0.0, "bet75": 0.3}, "evs": {"check": 1.2, "bet33": 0.9, "bet75": 1.2}, "ev": 1.2}
+      }
+    },
+    {
+      "path": ["check", "bet75"],
+      "player": "BB",
+      "pot": 9.6,
+      "effective_stack": 97.5,
+      "to_call": 4.1,
+      "actions": [
+        {"id": "fold", "type": "fold"},
+        {"id": "call", "type": "call"},
+        {"id": "raise", "type": "raise", "size": 13.5}
+      ],
+      "combos": {
+        "7h7c": {"weight": 0.25, "freqs": {"fold": 0.0, "call": 0.6, "raise": 0.4}, "evs": {"fold": 0.0, "call": 3.2, "raise": 3.3}, "ev": 3.24},
+        "AhQh": {"weight": 1.0, "freqs": {"fold": 0.7, "call": 0.3, "raise": 0.0}, "evs": {"fold": 0.0, "call": 0.0, "raise": -1.5}, "ev": 0.0},
+        "AcQc": {"weight": 1.0, "freqs": {"fold": 0.7, "call": 0.3, "raise": 0.0}, "evs": {"fold": 0.0, "call": 0.0, "raise": -1.5}, "ev": 0.0},
+        "Jd9d": {"weight": 0.45, "freqs": {"fold": 1.0, "call": 0.0, "raise": 0.0}, "evs": {"fold": 0.0, "call": -1.2, "raise": -3.0}, "ev": 0.0},
+        "8s6s": {"weight": 0.6, "freqs": {"fold": 0.2, "call": 0.5, "raise": 0.3}, "evs": {"fold": 0.0, "call": 0.02, "raise": 0.01}, "ev": 0.013}
+      }
+    }
+  ]
+}
