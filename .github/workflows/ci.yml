@@ -47,3 +47,11 @@ jobs:
           { echo "## Seeded strategy corruptions"; echo; cat corruptions.md; } >> "$GITHUB_STEP_SUMMARY"
         env:
           PYTHONPATH: src:.
+      - name: Push/fold demo
+        run: svlab pushfold --stack 10 --json pushfold.json
+      - name: Push/fold seeded bugs report
+        run: |
+          python scripts/run_pushfold_mutants.py | tee pushfold.md
+          { echo "## Seeded bugs in the push/fold solver"; echo; cat pushfold.md; } >> "$GITHUB_STEP_SUMMARY"
+        env:
+          PYTHONPATH: src:.

@@ -1,5 +1,6 @@
 """A small poker equity engine, the reference layer of this lab. The
-validator for exported solver strategies lives in `svlab.strategy`."""
+validator for exported solver strategies lives in `svlab.strategy`, and the
+heads-up push/fold solver in `svlab.pushfold`."""
 
 from .cards import parse, parse_many, card_str, FULL_DECK
 from .evaluator import evaluate, HandCategory

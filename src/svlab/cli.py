@@ -1,4 +1,4 @@
-"""Command line: `svlab validate`, `svlab iso`, `svlab diff`, `svlab rules`.
+"""Command line: `svlab validate`, `svlab iso`, `svlab diff`, `svlab rules`, `svlab pushfold`.
 
 Exit codes: 0 when everything passes, 1 when a rule or threshold fails,
 2 when a file can't be read or parsed (or the arguments are wrong).
@@ -117,6 +117,44 @@ def cmd_rules(args: argparse.Namespace) -> int:
     return OK
 
 
+def _grid(values, fmt) -> list[str]:
+    """A 13x13 hand grid: pairs on the diagonal, suited above it, offsuit below."""
+    from .cards import RANKS
+    from .preflop import INDEX
+
+    order = RANKS[::-1]
+    rows = ["     " + " ".join(f"{r:>4}" for r in order)]
+    for a, hi in enumerate(order):
+        cells = []
+        for b, lo in enumerate(order):
+            name = hi + lo if a == b else (hi + lo + "s" if a < b else lo + hi + "o")
+            cells.append(fmt(values[INDEX[name]]))
+        rows.append(f"{hi:>4} " + " ".join(cells))
+    return rows
+
+
+def cmd_pushfold(args: argparse.Namespace) -> int:
+    from .pushfold import Game, solve
+
+    if args.stack <= 0:
+        print("--stack must be positive", file=sys.stderr)
+        return UNREADABLE
+    game = Game.from_table(args.stack)
+    sol = solve(game, tolerance=args.tolerance)
+
+    def pct(x: float) -> str:
+        return "   ." if x < 0.005 else " 100" if x > 0.995 else f"{100 * x:4.0f}"
+
+    print(f"Heads-up push/fold, {args.stack:g} bb, blinds 0.5/1, no ante")
+    print(f"SB shoves {100 * sol.shove_share(game):.1f}% of hands; BB calls with {100 * sol.call_share(game):.1f}%")
+    print(f"SB EV {sol.sb_value:+.4f} bb per hand; Nash gap {sol.nash_gap:.2e} bb after {sol.iterations} iterations")
+    for title, values in (("SB shove %", sol.shove), ("BB call %", sol.call)):
+        print(f"\n{title}")
+        print("\n".join(_grid(values, pct)))
+    _write_json(args.json, sol.to_json())
+    return OK if sol.nash_gap <= args.tolerance else FAILED
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="svlab", description="Validate and compare exported solver strategies.")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -152,6 +190,12 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--json", help="write the JSON report to this file")
     p.add_argument("--quiet", action="store_true", help="don't print the report")
     p.set_defaults(run=cmd_diff)
+
+    p = sub.add_parser("pushfold", help="solve heads-up push/fold at one stack depth")
+    p.add_argument("--stack", type=float, required=True, help="effective stack in big blinds")
+    p.add_argument("--tolerance", type=float, default=1e-6, help="Nash gap to reach, in bb per hand (default 1e-6)")
+    p.add_argument("--json", help="also write the solution to this file")
+    p.set_defaults(run=cmd_pushfold)
 
     p = sub.add_parser("rules", help="list the validation rules")
     p.set_defaults(run=cmd_rules)

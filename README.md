@@ -2,12 +2,14 @@
 
 How do you test poker software when, for most inputs, nobody knows the right answer?
 
-A solver or a trainer gives you numbers: equities, frequencies, expected values. For a handful of spots you can check them by hand. For the rest there is no perfect oracle, only relationships that must hold. This lab applies that idea at two levels:
+A solver or a trainer gives you numbers: equities, frequencies, expected values. For a handful of spots you can check them by hand. For the rest there is no perfect oracle, only relationships that must hold. This lab applies that idea at three levels:
 
 1. **An equity engine** (`src/svlab`), a pure-Python all-in equity calculator, with a validation suite of 15 checks and 9 seeded bugs that show which checks catch what. It is the reference layer: the strategy tools below reuse its card handling, and the synthetic strategy generator uses its evaluator to estimate equities by Monte Carlo.
 2. **A validator for exported solver strategies** (`src/svlab/strategy`): a documented JSON contract, 13 rules that any correct export must satisfy, a suit-isomorphism check across two files, and a regression diff between a baseline and a candidate, with 17 seeded corruptions that show which check catches what.
 
-Neither part is a solver. The strategy files in this repository are synthetic, generated or hand-written here; none of them comes from a real solver.
+3. **A heads-up push/fold solver** (`src/svlab/pushfold.py`), built on an exact preflop equity table for the 169 hand classes. It is the one spot here small enough to have a real oracle: a best response against the solution must gain nothing. Seven checks and six seeded bugs show which check catches what.
+
+The first two parts are not solvers, and the strategy files in this repository are synthetic, generated or hand-written here; none of them comes from a real solver. The push/fold solutions are real equilibria of a deliberately small game, described below.
 
 ![CI](https://github.com/pedromorago/solver-validation-lab/actions/workflows/ci.yml/badge.svg)
 
@@ -186,6 +188,67 @@ What the table says about the checks:
 
 `tests/test_strategy_properties.py` uses a Hypothesis generator of small valid strategy files (`tests/strategy_gen.py`: random boards, one to three nodes, random legal actions, suit-isomorphic classes that share a strategy, and ranges that follow the tree). The properties: every generated file passes every rule; `parse(serialize(x)) == x`; relabelling suits gives a file that `iso` maps back onto the original; a file diffed against itself passes; and every corruption is reported by the rule it was written for.
 
+## Layer 3: a push/fold solver with a real oracle
+
+With short stacks, heads-up play reduces to one decision each: the small blind shoves all in or folds, and the big blind calls or folds. That game is small enough to solve exactly, which makes it the place where a solver can be checked against the strongest oracle there is. For any pair of strategies you can compute what each player would gain by switching to their best response; the sum, the Nash gap, is zero at an equilibrium and positive anywhere else.
+
+### An exact preflop equity table
+
+The solver needs the all-in equity of every hand class against every other. The pure-Python engine would take days to enumerate every board for every matchup, so `tools/preflop_equity.c` does it in C: it lists the 812,175 pairs of hands that share no card, groups them into 47,008 matchups that are the same up to relabelling suits, enumerates all 1,712,304 boards for each group, and adds the results to the two classes involved. The table ships as `src/svlab/data/preflop_equity.txt.gz`, in integer units like the engine (two per board, one each on a split), so its invariants hold exactly.
+
+`scripts/make_preflop_table.py` writes the table only after the C program agrees exactly, unit for unit, with the Python engine on 300 random matchups on random flops and turns, and after every invariant passes. `tests/test_preflop_table.py` then checks it from four sides:
+
+| Oracle | Check |
+|---|---|
+| Invariant | The number of hand pairs behind every cell follows from card removal; the units of i against j and of j against i add up to the pot, exactly; a class against itself is exactly 50% |
+| Reference | AA against KK is the textbook 82% |
+| Differential | The C program matches the Python engine exactly on random flops (when gcc is available) |
+| Statistical | Random cells fall within 4.5 standard errors of a Monte Carlo estimate made with the Python engine |
+
+### The game and the solver
+
+Blinds are 0.5 and 1, there are no antes, and both players start with the same stack. EVs are in big blinds: folding the small blind is worth -0.5, a shove that gets folded to +1, and a called shove `stack * (2 * equity - 1)`. Chips are what count, which in a winner-take-all Spin & Go is also what the prize depends on. How often class i meets class j comes from the number of hand pairs in the table, so card removal is part of the game: holding an ace makes it less likely that the opponent has one.
+
+`solve` runs CFR+ (alternating updates, linearly weighted averages) until the Nash gap of the average strategies is below a tolerance, 1e-6 bb per hand by default:
+
+```
+$ svlab pushfold --stack 10
+Heads-up push/fold, 10 bb, blinds 0.5/1, no ante
+SB shoves 58.3% of hands; BB calls with 37.4%
+SB EV -0.0454 bb per hand; Nash gap 9.78e-07 bb after 1300 iterations
+```
+
+followed by the shove and call frequencies as 13x13 grids. `--json` writes every class's frequencies and the EV of each action, the data a trainer needs to grade a decision by the EV it loses rather than by right or wrong.
+
+### The checks and the seeded bugs
+
+`validation/pushfold_checks.py` holds seven checks; `validation/pushfold_mutants.py` patches six bugs into the solver, one at a time, and `scripts/run_pushfold_mutants.py` runs every check against every one of them.
+
+| Check | Oracle | What it says |
+|---|---|---|
+| Nash gap closes | Exactness | Best responses against the solution gain at most the tolerance |
+| Regrets add up to the gap | Invariant | Each class's gain from switching to its best action, weighted by how often it reaches its decision, is non-negative, and the gains add up to the Nash gap: the per-class EVs and the best responses agree |
+| Fictitious play agrees | Differential | A different algorithm reaches the same game value |
+| Value over dealt hands | Differential | The SB's EV recomputed from scratch over every pair of hands that can be dealt, with the rules written out again; only the equities are shared with the solver |
+| Coin flips shoved and called | Reference | On a table where every matchup is 50%, the answer follows by hand: shove and call everything, for a value of 0 |
+| AA shoves and calls | Reference | The best hand never folds, at any stack |
+| Zero-sum | Invariant | The two players' values cancel for random strategies |
+
+| Seeded bug | Layer | Caught by |
+|---|---|---|
+| Card removal ignored | game | `value over dealt hands` (differential) |
+| Equity table read transposed | game | `value over dealt hands` (differential), `AA shoves and calls` (reference) |
+| Blinds swapped | game | `Nash gap closes` (exactness), `regrets add up to the gap` (invariant), `value over dealt hands` (differential), `zero-sum` (invariant) |
+| BB scored with the SB's equity | values | `Nash gap closes` (exactness), `regrets add up to the gap` (invariant), `AA shoves and calls` (reference), `zero-sum` (invariant) |
+| Nash gap leaves out the BB | values | `regrets add up to the gap` (invariant) |
+| Last iterate reported instead of the average | solver | `Nash gap closes` (exactness) |
+
+What the table says:
+
+- **A converged solver can still solve the wrong game.** Ignoring card removal changes the game, not the algorithm, so the solver still finds an exact equilibrium of it: the Nash gap is zero and every internal check passes. Only the check that rebuilds the value from dealt hands, independently of the solver's model, notices. Exploitability proves the solver solved its model, not that the model is right.
+- **The gap is only as good as its own code.** A Nash gap that leaves out one player's deviations reports convergence that never happened. The cross-check between the per-class regrets and the gap catches it; the gap alone cannot.
+- **The averaged strategy is the answer.** CFR's current strategy keeps moving; returning it instead of the average is a common slip that leaves a measurable gap.
+
 ## Running it
 
 ```bash
@@ -199,12 +262,16 @@ svlab diff fixtures/strategies/srp_btn_bb_Ks7s2d.json fixtures/strategies/candid
     --config fixtures/diff_thresholds.json --markdown diff.md --json diff.json
 svlab diff baseline.json candidate.json --max-freq-shift 0.1 --max-ev-shift 0.5   # flags instead of a config
 
+svlab pushfold --stack 10 --json pushfold.json         # heads-up push/fold at 10 bb
+
 PYTHONPATH=src:. python scripts/run_mutants.py       # seeded bugs in the engine
+PYTHONPATH=src:. python scripts/run_pushfold_mutants.py   # seeded bugs in the push/fold solver
+PYTHONPATH=src:. python scripts/make_preflop_table.py     # rebuild the equity table (gcc, about half an hour)
 PYTHONPATH=src:. python scripts/run_corruptions.py   # seeded corruptions of strategy files
 PYTHONPATH=src python scripts/make_fixtures.py       # regenerate the synthetic fixtures
 ```
 
-`python -m svlab ...` works the same as `svlab ...`. Exit codes: 0 when everything passes, 1 when a rule or threshold fails, 2 when a file can't be read or parsed. Python 3.11 or later; the strategy tools use only the standard library.
+`python -m svlab ...` works the same as `svlab ...`. Exit codes: 0 when everything passes, 1 when a rule or threshold fails, 2 when a file can't be read or parsed. Python 3.11 or later; the engine and the strategy tools use only the standard library, and the push/fold solver uses NumPy.
 
 ## Limitations
 
@@ -212,10 +279,13 @@ PYTHONPATH=src python scripts/make_fixtures.py       # regenerate the synthetic 
 - The consistency rules work within a node, plus reach between a player's own decisions. EVs are not checked across nodes (for example, that the EV of checking equals what the next node's strategies imply), which would need both players' strategies and the values at the end of the tree.
 - Played actions are not required to have equal EVs, which an exact equilibrium would give, because real solver output is only approximately converged. `zero-freq-best-response` checks the one direction that tolerates that.
 - The fixtures cover single flop decisions, with no turn or river cards dealt within the file.
+- The push/fold game leaves out limps, min-raises and antes, so its strategies are the equilibrium of that restricted game, not of full heads-up poker. Its EVs are in chips; outside winner-take-all prize structures they would need an ICM model.
+- Push/fold solutions are not yet exported in the strategy file format, which describes postflop spots only.
 
 ## Next
 
-- Heads-up push/fold equilibrium for short stacks, checked by exploitability: a best response against the computed strategy must gain no more than a stated tolerance. That would give the strategy validator a real solver to point at, with a stronger oracle than `zero-freq-best-response`.
+- Three-handed push/fold for the start of a Spin & Go, with the same checks.
+- Push/fold exports graded by EV loss in [Spin Trainer](https://github.com/pedromorago/spin-trainer-api), so a wrong answer says how much it costs.
 - Range against range equity, with consistency checks between the range result and the weighted combination of its hand-against-hand parts.
 
 ## License
