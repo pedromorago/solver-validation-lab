@@ -4,3 +4,4 @@ __pycache__/
 .pytest_cache/
 .venv/
 build/
+src/svlab/data/threeway_equity.bin

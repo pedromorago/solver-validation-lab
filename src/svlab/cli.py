@@ -1,4 +1,4 @@
-"""Command line: `svlab validate`, `svlab iso`, `svlab diff`, `svlab rules`, `svlab pushfold`.
+"""Command line: `svlab validate`, `svlab iso`, `svlab diff`, `svlab rules`, `svlab pushfold`, `svlab pushfold3`.
 
 Exit codes: 0 when everything passes, 1 when a rule or threshold fails,
 2 when a file can't be read or parsed (or the arguments are wrong).
@@ -155,6 +155,40 @@ def cmd_pushfold(args: argparse.Namespace) -> int:
     return OK if sol.nash_gap <= args.tolerance else FAILED
 
 
+def cmd_pushfold3(args: argparse.Namespace) -> int:
+    from .pushfold3 import DECISIONS, Game3, solve
+
+    if args.stack <= 0:
+        print("--stack must be positive", file=sys.stderr)
+        return UNREADABLE
+    try:
+        game = Game3.from_table(args.stack)
+    except FileNotFoundError as e:
+        print(e, file=sys.stderr)
+        return UNREADABLE
+    sol = solve(game, tolerance=args.tolerance, max_iterations=args.max_iterations)
+
+    def pct(x: float) -> str:
+        return "   ." if x < 0.005 else " 100" if x > 0.995 else f"{100 * x:4.0f}"
+
+    titles = {
+        "btn": "BTN shove %",
+        "sb_vs_shove": "SB call % against the BTN's shove",
+        "sb_open": "SB shove % after the BTN folds",
+        "bb_vs_btn": "BB call % against the BTN's shove (SB folded)",
+        "bb_vs_both": "BB call % against the BTN's shove and the SB's call",
+        "bb_vs_sb": "BB call % against the SB's shove (BTN folded)",
+    }
+    print(f"Three-handed push/fold, {args.stack:g} bb each, blinds 0.5/1, no ante")
+    print("EV per hand: " + ", ".join(f"{p} {v:+.4f}" for p, v in sol.values.items()))
+    print(f"NashConv {sol.nash_conv:.2e} bb after {sol.iterations} iterations")
+    for d in DECISIONS:
+        print(f"\n{titles[d]}")
+        print("\n".join(_grid(sol.strategy[d], pct)))
+    _write_json(args.json, sol.to_json(game))
+    return OK if sol.nash_conv <= args.tolerance else FAILED
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="svlab", description="Validate and compare exported solver strategies.")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -196,6 +230,13 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--tolerance", type=float, default=1e-6, help="Nash gap to reach, in bb per hand (default 1e-6)")
     p.add_argument("--json", help="also write the solution to this file")
     p.set_defaults(run=cmd_pushfold)
+
+    p = sub.add_parser("pushfold3", help="solve three-handed push/fold (BTN, SB, BB) at one stack depth")
+    p.add_argument("--stack", type=float, required=True, help="every player's stack in big blinds")
+    p.add_argument("--tolerance", type=float, default=1e-5, help="NashConv to reach, in bb per hand (default 1e-5)")
+    p.add_argument("--max-iterations", type=int, default=5000)
+    p.add_argument("--json", help="also write the solution to this file")
+    p.set_defaults(run=cmd_pushfold3)
 
     p = sub.add_parser("rules", help="list the validation rules")
     p.set_defaults(run=cmd_rules)

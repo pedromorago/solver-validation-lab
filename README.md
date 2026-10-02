@@ -7,7 +7,7 @@ A solver or a trainer gives you numbers: equities, frequencies, expected values.
 1. **An equity engine** (`src/svlab`), a pure-Python all-in equity calculator, with a validation suite of 15 checks and 9 seeded bugs that show which checks catch what. It is the reference layer: the strategy tools below reuse its card handling, and the synthetic strategy generator uses its evaluator to estimate equities by Monte Carlo.
 2. **A validator for exported solver strategies** (`src/svlab/strategy`): a documented JSON contract, 13 rules that any correct export must satisfy, a suit-isomorphism check across two files, and a regression diff between a baseline and a candidate, with 17 seeded corruptions that show which check catches what.
 
-3. **A heads-up push/fold solver** (`src/svlab/pushfold.py`), built on an exact preflop equity table for the 169 hand classes. It is the one spot here small enough to have a real oracle: a best response against the solution must gain nothing. Seven checks and six seeded bugs show which check catches what.
+3. **Push/fold solvers** for heads-up (`src/svlab/pushfold.py`) and three-handed play (`src/svlab/pushfold3.py`), built on preflop equity tables for the 169 hand classes. They are the spots here small enough to have a real oracle: a best response against the solution must gain nothing. For heads-up, seven checks and six seeded bugs show which check catches what.
 
 The first two parts are not solvers, and the strategy files in this repository are synthetic, generated or hand-written here; none of them comes from a real solver. The push/fold solutions are real equilibria of a deliberately small game, described below.
 
@@ -220,7 +220,7 @@ SB EV -0.0454 bb per hand; Nash gap 9.78e-07 bb after 1300 iterations
 
 followed by the shove and call frequencies as 13x13 grids. `--json` writes every class's frequencies and the EV of each action, the data a trainer needs to grade a decision by the EV it loses rather than by right or wrong.
 
-### The checks and the seeded bugs
+### The heads-up checks and the seeded bugs
 
 `validation/pushfold_checks.py` holds seven checks; `validation/pushfold_mutants.py` patches six bugs into the solver, one at a time, and `scripts/run_pushfold_mutants.py` runs every check against every one of them.
 
@@ -249,6 +249,32 @@ What the table says:
 - **The gap is only as good as its own code.** A Nash gap that leaves out one player's deviations reports convergence that never happened. The cross-check between the per-class regrets and the gap catches it; the gap alone cannot.
 - **The averaged strategy is the answer.** CFR's current strategy keeps moving; returning it instead of the average is a common slip that leaves a measurable gap.
 
+### Three-handed: the start of a Spin & Go
+
+`svlab pushfold3` solves BTN, SB and BB with equal stacks. The button shoves or folds; if it folds, the blinds play the heads-up game with the button's cards dead; if it shoves, the small blind calls or folds and the big blind then faces the shove alone or the shove and a call. That is six decisions, each taken knowing only one's own hand.
+
+Three-way all-ins need the equity of every triple of classes: 818,805 of them, too many to enumerate every board. `tools/threeway_equity.c` estimates them by Monte Carlo, 8,000 deals per triple with a fixed seed, together with the three heads-up equities with the third hand's cards dead; the weight of each triple, how many ways it can be dealt, is counted exactly. The table is about 11 MB, so it is generated (`scripts/make_threeway_table.py`, ten minutes on four cores) rather than committed, and CI caches it.
+
+With three players, CFR+ has no convergence guarantee, so the result is judged by NashConv: the total that each player could gain by switching to a best response. Each player acts at most once on any path, so this is the sum of the regrets at every decision. At 10 bb the solver gets it below 1e-5 bb per hand in about 600 iterations:
+
+```
+$ svlab pushfold3 --stack 10
+Three-handed push/fold, 10 bb each, blinds 0.5/1, no ante
+EV per hand: BTN +0.2414, SB -0.0835, BB -0.1578
+NashConv 9.81e-06 bb after 625 iterations
+```
+
+| Oracle | Check |
+|---|---|
+| Invariant | Triple weights summed over the third hand equal the heads-up pair counts times the 1,128 ways to deal it, exactly; the three seats' equities add up to 1; the three players' values add up to 0 |
+| Statistical | The heads-up estimates, averaged over the third hand, match the exact heads-up table within five standard errors in all 28,561 cells; random three-way cells match a Monte Carlo run of the Python engine |
+| Exactness | NashConv is below the tolerance |
+| Differential | Replacing one player's strategy by its best response and re-evaluating the whole game gains exactly what the per-decision regrets say |
+| Reduction | When the button folds everything, the blinds are playing the heads-up game: the heads-up equilibrium keeps its value and stays an equilibrium, up to the Monte Carlo noise |
+| Reference | AA never folds; on coin flips the blinds call everything they face |
+
+The Monte Carlo table is the weak point of the three-handed solver, and the checks say how weak: a solution is an exact equilibrium of the game the table describes, and that game differs from the true one by the table's sampling error.
+
 ## Running it
 
 ```bash
@@ -263,6 +289,8 @@ svlab diff fixtures/strategies/srp_btn_bb_Ks7s2d.json fixtures/strategies/candid
 svlab diff baseline.json candidate.json --max-freq-shift 0.1 --max-ev-shift 0.5   # flags instead of a config
 
 svlab pushfold --stack 10 --json pushfold.json         # heads-up push/fold at 10 bb
+PYTHONPATH=src:. python scripts/make_threeway_table.py    # build the three-way table once (gcc, about ten minutes)
+svlab pushfold3 --stack 10 --json pushfold3.json       # three-handed push/fold at 10 bb
 
 PYTHONPATH=src:. python scripts/run_mutants.py       # seeded bugs in the engine
 PYTHONPATH=src:. python scripts/run_pushfold_mutants.py   # seeded bugs in the push/fold solver
@@ -279,12 +307,13 @@ PYTHONPATH=src python scripts/make_fixtures.py       # regenerate the synthetic 
 - The consistency rules work within a node, plus reach between a player's own decisions. EVs are not checked across nodes (for example, that the EV of checking equals what the next node's strategies imply), which would need both players' strategies and the values at the end of the tree.
 - Played actions are not required to have equal EVs, which an exact equilibrium would give, because real solver output is only approximately converged. `zero-freq-best-response` checks the one direction that tolerates that.
 - The fixtures cover single flop decisions, with no turn or river cards dealt within the file.
-- The push/fold game leaves out limps, min-raises and antes, so its strategies are the equilibrium of that restricted game, not of full heads-up poker. Its EVs are in chips; outside winner-take-all prize structures they would need an ICM model.
+- The push/fold games leave out limps, min-raises and antes, so their strategies are equilibria of those restricted games, not of full poker. Their EVs are in chips; outside winner-take-all prize structures they would need an ICM model.
+- Three-handed play assumes equal stacks, so there are no side pots, and its three-way equities are Monte Carlo estimates. The seeded-bug report covers the heads-up solver only.
 - Push/fold solutions are not yet exported in the strategy file format, which describes postflop spots only.
 
 ## Next
 
-- Three-handed push/fold for the start of a Spin & Go, with the same checks.
+- Seeded bugs for the three-handed solver, and unequal stacks with side pots.
 - Push/fold exports graded by EV loss in [Spin Trainer](https://github.com/pedromorago/spin-trainer-api), so a wrong answer says how much it costs.
 - Range against range equity, with consistency checks between the range result and the weighted combination of its hand-against-hand parts.
 

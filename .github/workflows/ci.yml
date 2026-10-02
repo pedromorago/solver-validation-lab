@@ -10,13 +10,24 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - run: pip install -e ".[dev]"
+      - name: Cache the three-way equity table
+        id: threeway
+        uses: actions/cache@v4
+        with:
+          path: src/svlab/data/threeway_equity.bin
+          key: threeway-${{ hashFiles('tools/threeway_equity.c', 'tools/poker.h', 'scripts/make_threeway_table.py') }}
+      - name: Build the three-way equity table
+        if: steps.threeway.outputs.cache-hit != 'true'
+        run: python scripts/make_threeway_table.py
+        env:
+          PYTHONPATH: src:.
       - name: Tests
         run: pytest -q
       - name: Seeded bugs report
@@ -55,3 +66,5 @@ jobs:
           { echo "## Seeded bugs in the push/fold solver"; echo; cat pushfold.md; } >> "$GITHUB_STEP_SUMMARY"
         env:
           PYTHONPATH: src:.
+      - name: Three-handed push/fold demo
+        run: svlab pushfold3 --stack 10 --json pushfold3.json
