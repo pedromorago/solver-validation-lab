@@ -2,7 +2,7 @@
   "format": "svlab-strategy/1",
   "meta": {
     "synthetic": true,
-    "description": "Synthetic candidate: the Ks7s2d baseline where, after a check, the button's kings move 60% of their 75% bets to 33%, and suited A5 is missing from the button's range. Not solver output.",
+    "description": "Synthetic candidate: the Ks7s2d baseline where, after a check, the button's hands with a king move 60% of their 75% bets to 33%, and suited A5 is missing from the button's range. Not solver output.",
     "generator": "svlab.strategy.synthetic.generate",
     "seed": 1,
     "units": "bb"

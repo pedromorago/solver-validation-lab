@@ -206,7 +206,7 @@ def matches_recorded_baselines(engine: Engine) -> None:
 @check("statistical")
 def monte_carlo_falls_within_its_error_bars(engine: Engine, iterations: int = 4000) -> None:
     """Each estimate must be within 4.5 standard errors of the exact value.
-    Seeds are fixed, so the check is deterministic; with ~60 comparisons a
+    Seeds are fixed, so the check is deterministic; with 19 comparisons a
     correct engine passes this bound with overwhelming probability."""
     for seed, (name, hands, board) in enumerate(FLOP_SPOTS + TURN_SPOTS):
         exact = engine.exact(hands, board).equities
@@ -218,7 +218,8 @@ def monte_carlo_falls_within_its_error_bars(engine: Engine, iterations: int = 40
 
 @check("statistical")
 def monte_carlo_error_shrinks_with_more_samples(engine: Engine) -> None:
-    """Quadrupling the samples should roughly halve the error, averaged over seeds."""
+    """Sixteen times the samples should at least halve the error, averaged over seeds
+    (theory says it falls to about a quarter; the bound leaves room for noise)."""
     name, hands, board = FLOP_SPOTS[0]
     exact = engine.exact(hands, board).equities[0]
 

@@ -87,7 +87,7 @@
       ]
     },
     {
-      "name": "same ranks, one backdoor flush",
+      "name": "same ranks, one flush draw",
       "hands": [
         "2c3d",
         "2h3s"

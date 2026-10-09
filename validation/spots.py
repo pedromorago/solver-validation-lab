@@ -10,7 +10,7 @@ FLOP_SPOTS = [
     ("set vs overpair", [P("7d7c"), P("AhAc")], P("7s Kd 2h")),
     ("dominated kicker", [P("AsKd"), P("AcQh")], P("Ah 8c 3d")),
     ("wheel draw", [P("As2s"), P("KdKh")], P("3c 4d 9h")),
-    ("same ranks, one backdoor flush", [P("2c3d"), P("2h3s")], P("Ah Kh Qh")),
+    ("same ranks, one flush draw", [P("2c3d"), P("2h3s")], P("Ah Kh Qh")),
     ("three-way", [P("AhKh"), P("QsQd"), P("9c8c")], P("Jh Td 2c")),
 ]
 

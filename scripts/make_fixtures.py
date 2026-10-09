@@ -67,7 +67,7 @@ def main() -> None:
         "candidate_regressed_Ks7s2d.json": synthetic.rebuild(
             base,
             sizing_regression,
-            "Synthetic candidate: the Ks7s2d baseline where, after a check, the button's kings move 60% of their "
+            "Synthetic candidate: the Ks7s2d baseline where, after a check, the button's hands with a king move 60% of their "
             "75% bets to 33%, and suited A5 is missing from the button's range. Not solver output.",
         ),
     }

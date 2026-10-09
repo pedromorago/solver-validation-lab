@@ -44,7 +44,7 @@ monte_carlo_equity([P("AhKh"), P("QsQd")], iterations=20_000, seed=0)
 | Differential | An independent implementation must agree | 3,000 random seven-card matchups ordered the same way as by [treys](https://github.com/ihendley/treys) |
 | Invariant | Must hold for any input | Card order doesn't matter; shares add up to the pot exactly; a complete board has no uncertainty; sampled boards use distinct, unused cards |
 | Metamorphic | A known change to the input changes the output in a known way | Renaming suits changes nothing, for hands and for equity; swapping players swaps equities; flop equity is exactly the average of the equities after each turn card |
-| Statistical | A sampled estimate must fall within its error bars | Monte Carlo within 4.5 standard errors of the exact value; quadrupling the samples roughly halves the error |
+| Statistical | A sampled estimate must fall within its error bars | Monte Carlo within 4.5 standard errors of the exact value; sixteen times the samples at least halves the error |
 | Regression | Results must match recorded baselines | Exact equities for 11 spots in `validation/baselines.json` |
 
 The baselines are not a copy of whatever the engine said on the day. `scripts/make_baselines.py` recomputes every spot with treys and refuses to write the file unless both agree exactly.
@@ -125,7 +125,7 @@ Across two files, `svlab iso a.json b.json` finds the suit relabelling that turn
 
 `svlab diff baseline.json candidate.json` matches nodes by path and combos by their cards, whatever order they are written in, and reports per node the largest per-combo shift in frequency, EV and weight, the range-weighted frequency of each action, and combos added or removed. Thresholds come from flags or a JSON file ([`fixtures/diff_thresholds.json`](fixtures/diff_thresholds.json)). It writes a Markdown report and, with `--json`, a machine-readable one, and exits 1 when any threshold is exceeded.
 
-For the regressed demo candidate, where the button's kings move 60% of their 75% pot bets to the 33% size and suited A5 disappears, the report includes:
+For the regressed demo candidate, where the button's hands with a king move 60% of their 75% pot bets to the 33% size and suited A5 disappears, the report includes:
 
 ```
 | Node | Player | Compared | Added | Removed | Max freq shift | Max EV shift | Max weight shift |
